@@ -1,5 +1,6 @@
 module Parser
-    ( parseProgram 
+    ( parseProgram
+    , parseGoal
     )
  where
 
@@ -8,7 +9,10 @@ import Text.ParserCombinators.Parsec
 import Datatypes
 
 parseProgram :: String -> Either ParseError Program
-parseProgram = parse program "Prolog syntax error"
+parseProgram = parse program "Prolog program syntax error"
+
+parseGoal :: String -> Either ParseError Term
+parseGoal = parse (term <* char '.') "Goal syntax error"
 
 program :: Parser Program
 program = many junk >> clause `endBy1` lineEnd
