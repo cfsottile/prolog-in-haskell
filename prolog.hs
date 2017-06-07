@@ -21,6 +21,9 @@ type Substitution = Map.Map Term Term -- Key must be Var
 type Unifier = (Valuation,Substitution)
 type ProgramMap = Map.Map Name [Clause]
 
+showVal :: Valuation -> [String]
+showVal = Map.foldWithKey (\k a l-> (show k ++ " = " ++ show a) : l) []
+
 parseAndAskIf :: String -> String -> Either ParseError Bool
 parseAndAskIf t p = askIf <$> parseGoal t <*> parseProgram p
 

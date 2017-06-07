@@ -1,8 +1,7 @@
 module Parser
     ( parseProgram
     , parseGoal
-    )
- where
+    ) where
 
 import Text.ParserCombinators.Parsec
 
