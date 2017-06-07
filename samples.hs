@@ -5,7 +5,7 @@ import Prolog
 cnst :: String -> Term
 cnst n = Pred n []
 
-p1 = 
+parsedProgram1 = 
     [ Rule (Pred "parent" [cnst "silvia" , cnst "cristian"]) []
     , Rule (Pred "parent" [cnst "domingo", cnst "cristian"]) []
     , Rule (Pred "parent" [cnst "juan"   , cnst "silvia"  ]) []
@@ -38,12 +38,12 @@ p1 =
                                                              ]
     ]
 
-g11 = Pred "mother"   [Pred "yolanda"  [], Pred "silvia"   []]
-g12 = Pred "mother"   [Pred "silvia"   [], Pred "cristian" []]
-g13 = Pred "siblings" [Pred "silvia"   [], Pred "carlos"   []]
-g14 = Pred "mother"   [Var "A", Var "B"]
+gp11 = Pred "mother"   [Pred "yolanda"  [], Pred "silvia"   []]
+gp12 = Pred "mother"   [Pred "silvia"   [], Pred "cristian" []]
+gp13 = Pred "siblings" [Pred "silvia"   [], Pred "carlos"   []]
+gp14 = Pred "mother"   [Var "A", Var "B"]
 
-p2 = 
+parsedProgram2 = 
     [ Rule (Pred "negro"  [cnst "cristian"])  []
     , Rule (Pred "negro"  [cnst "totoy"])     []
     , Rule (Pred "negro"  [cnst "maxi"])      []
@@ -55,8 +55,21 @@ p2 =
 
 -- p2 = [ Rule (Pred "negro" [cnst "cristian"]) [], Rule (Pred "negro" [cnst "totoy"])    [], Rule (Pred "negro" [cnst "maxi"])     [], Rule (Pred "negro" [cnst "ruben"])    [], Rule (Pred "negros" [Var "X", Var "Y"]) [ Pred "negro" [Var "X"] , Pred "negro" [Var "Y"]]]
 
-g21 = Pred "negro"  [cnst "cristian"]
-g22 = Pred "negro"  [cnst "totoy"]
-g23 = Pred "negro"  [cnst "maxi"]
-g24 = Pred "negro"  [cnst "ruben"]
-g25 = Pred "negros" [Var "A", Var "B"]
+gp21 = Pred "negro"  [cnst "cristian"]
+gp22 = Pred "negro"  [cnst "totoy"]
+gp23 = Pred "negro"  [cnst "maxi"]
+gp24 = Pred "negro"  [cnst "ruben"]
+gp25 = Pred "negros" [Var "A", Var "B"]
+
+unparsedProgram2 = "% this is a comment!\n\
+                    \negro(cristian).\n\
+                    \negro(totoy).\n\
+                    \negro(maxi).\n\
+                    \negro(ruben).\n\
+                    \negros(X,Y) :- negro(X), negro(Y)."
+
+gu21 = "negro(cristian)."
+gu22 = "negro(totoy)."
+gu23 = "negro(maxi)."
+gu24 = "negro(ruben)."
+gu25 = "negros(X,Y)."
