@@ -1,5 +1,7 @@
 module Prolog
-    ( askIf
+    ( parseAndAskIf
+    , parseAndAskAll
+    , askIf
     , askAll
     , Term(..)
     , Clause(..)
@@ -8,18 +10,21 @@ module Prolog
 import qualified Data.Map as Map
 import qualified Data.List as List
 import Data.Maybe
+import Text.ParserCombinators.Parsec (ParseError)
 import Control.Arrow (first)
 
-type Name = String
-type Args = [Term]
-data Term = Var Name | Pred Name Args deriving (Eq,Show,Ord)
-type Goals = [Term]
-data Clause = Rule Term Goals deriving (Eq,Show,Ord) -- Rule's first argument must be Pred
-type Program = [Clause]
+import Datatypes
+import Parser
 
 type Valuation = Map.Map Term Term -- Key must be Var
 type Substitution = Map.Map Term Term -- Key must be Var
 type ProgramMap = Map.Map Name [Clause]
+
+parseAndAskIf :: Term -> String -> Either ParseError Bool
+parseAndAskIf t s = askIf t <$> parseProgram s
+
+parseAndAskAll :: Term -> String -> Either ParseError [Valuation]
+parseAndAskAll t s = askAll t <$> parseProgram s
 
 askIf :: Term -> Program -> Bool
 askIf t p = not $ null $ askAll t p
