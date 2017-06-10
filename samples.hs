@@ -1,6 +1,7 @@
 module Test where
 
 import Prolog
+import Printing
 
 cnst :: String -> Term
 cnst n = Pred n []
@@ -66,10 +67,14 @@ unparsedProgram2 = "% this is a comment!\n\
                     \negro(totoy).\n\
                     \negro(maxi).\n\
                     \negro(ruben).\n\
-                    \negros(X,Y) :- negro(X), negro(Y)."
+                    \negros(X,Y) :- negro(X), negro(Y).\n\
+                    \negros4(X,Y,W,Z) :- negros(X,Y), negros(W,Z).\n\
+                    \negros8(A,B,C,D,E,F,G,H) :- negros4(A,B,C,D), negros4(E,F,G,H).\n\
+                    \negros16(A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P) :- negros8(A,B,C,D,E,F,G,H), negros8(I,J,K,L,M,N,O,P)."
 
 gu21 = "negro(cristian)."
 gu22 = "negro(totoy)."
 gu23 = "negro(maxi)."
 gu24 = "negro(ruben)."
 gu25 = "negros(X,Y)."
+gu26 = "negros16(A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P)."

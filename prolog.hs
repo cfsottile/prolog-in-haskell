@@ -3,6 +3,8 @@ module Prolog
     , parseAndAskAll
     , askIf
     , askAll
+    , genMap
+    , isGround
     , Term(..)
     , Clause(..)
     ) where
@@ -11,30 +13,28 @@ import qualified Data.Map as Map
 import qualified Data.List as List
 import Data.Maybe
 import Text.ParserCombinators.Parsec (ParseError)
-import Control.Arrow (first)
 
 import Datatypes
 import Parser
-
-type Valuation = Map.Map Term Term -- Key must be Var
-type Substitution = Map.Map Term Term -- Key must be Var
-type Unifier = (Valuation,Substitution)
-type ProgramMap = Map.Map Name [Clause]
-
-showVal :: Valuation -> [String]
-showVal = Map.foldWithKey (\k a l-> (show k ++ " = " ++ show a) : l) []
+import Printing
 
 parseAndAskIf :: String -> String -> Either ParseError Bool
-parseAndAskIf t p = askIf <$> parseGoal t <*> parseProgram p
+parseAndAskIf t p = compileAndAskIf <$> parseGoal t <*> parseProgram p
 
 parseAndAskAll :: String -> String -> Either ParseError [Valuation]
-parseAndAskAll t p = askAll <$> parseGoal t <*> parseProgram p
+parseAndAskAll t p = compileAndAskAll <$> parseGoal t <*> parseProgram p
 
-askIf :: Term -> Program -> Bool
-askIf t p = not $ null $ askAll t p
+compileAndAskIf :: Term -> Program -> Bool
+compileAndAskIf t = askIf t . genMap
 
-askAll :: Term -> Program -> [Valuation]
-askAll t p = ask t (genMap p) Map.empty
+compileAndAskAll :: Term -> Program -> [Valuation]
+compileAndAskAll t p = askAll t (genMap p)
+
+askIf :: Term -> ProgramMap -> Bool
+askIf t = not . null . askAll t
+
+askAll :: Term -> ProgramMap -> [Valuation]
+askAll t pm = ask t pm Map.empty
 
 ask :: Term -> ProgramMap -> Valuation -> [Valuation]
 ask p@(Pred name _) pm val = 
@@ -42,6 +42,7 @@ ask p@(Pred name _) pm val =
         valuationAndGoals' = valuationAndGoals (Rule p []) val
         explore' (val',gs) = explore gs pm val'
     in concat $ explore' <$> mapMaybe valuationAndGoals' mayUnifyClauses
+-- ask _ = 
 
 valuationAndGoals :: Clause -> Valuation -> Clause -> Maybe (Valuation,Goals)
 valuationAndGoals c1 val c2 =
@@ -51,6 +52,9 @@ valuationAndGoals c1 val c2 =
 substitute :: Substitution -> Term -> Term
 substitute sub v@(Var _) = fromMaybe v (Map.lookup v sub)
 substitute sub (Pred name args) = Pred name (substitute sub <$> args)
+
+-- clauseHead :: Clause -> Term
+-- clauseHead (Rule p@(Pred _ _) _) = p
 
 goals :: Clause -> Goals
 goals (Rule (Pred _ _) g) = g
@@ -123,3 +127,7 @@ argsUnify [] [] (val,sub) = Just (val,sub)
 -- argsUnify as1 as2 :: Unifier -> Maybe Unifier
 -- La mónada Maybe se encarga de continuar ante Just, y de cortar ante Nothing
 argsUnify (a1:as1) (a2:as2) (val,sub) = unify a1 a2 (val,sub) >>= argsUnify as1 as2
+
+isGround :: Term -> Bool
+isGround (Var _) = False
+isGround (Pred name args) = all isGround args

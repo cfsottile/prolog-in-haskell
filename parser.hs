@@ -34,7 +34,7 @@ term = var <|> predicate
 var :: Parser Term
 var = do
     c  <- upper
-    cs <- many letter
+    cs <- many alphaNum
     return $ Var (c:cs)
 
 predicate :: Parser Term
@@ -46,7 +46,7 @@ predicate = do
 predicateName :: Parser String
 predicateName = do
     c  <- lower
-    cs <- many letter
+    cs <- many alphaNum
     return (c:cs)
 
 predicateArgs :: Parser [Term]
