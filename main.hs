@@ -1,6 +1,6 @@
 module Main where
 
-import Datatypes (ProgramMap, Valuation)
+import Datatypes (ProgramMap, Substitution)
 import Prolog
 import Parser
 import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
@@ -48,7 +48,7 @@ answer fileName pm unparsedGoal =
             programReady fileName pm
         else forward fileName pm $ askAll goal pm
 
-forward :: FilePath -> ProgramMap -> [Valuation] -> IO ()
+forward :: FilePath -> ProgramMap -> [Substitution] -> IO ()
 forward fileName pm [] = programReady fileName pm
 forward fileName pm (v:vs) = do
     putDoc $ showOneAnswer v

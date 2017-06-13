@@ -5,8 +5,6 @@ module Prolog
     , askAll
     , genMap
     , isGround
-    , Term(..)
-    , Clause(..)
     ) where
 
 import qualified Data.Map as Map
@@ -18,59 +16,57 @@ import Datatypes
 import Parser
 import Printing
 
+--------------------------------------------------------------------------------
+-- Interface                                                                  --
+--------------------------------------------------------------------------------
+
 parseAndAskIf :: String -> String -> Either ParseError Bool
 parseAndAskIf t p = compileAndAskIf <$> parseGoal t <*> parseProgram p
 
-parseAndAskAll :: String -> String -> Either ParseError [Valuation]
+parseAndAskAll :: String -> String -> Either ParseError [Substitution]
 parseAndAskAll t p = compileAndAskAll <$> parseGoal t <*> parseProgram p
 
 compileAndAskIf :: Term -> Program -> Bool
 compileAndAskIf t = askIf t . genMap
 
-compileAndAskAll :: Term -> Program -> [Valuation]
+compileAndAskAll :: Term -> Program -> [Substitution]
 compileAndAskAll t p = askAll t (genMap p)
 
 askIf :: Term -> ProgramMap -> Bool
 askIf t = not . null . askAll t
 
-askAll :: Term -> ProgramMap -> [Valuation]
-askAll t pm = ask t pm Map.empty
+--------------------------------------------------------------------------------
+-- PrologContext                                                              --
+--------------------------------------------------------------------------------
 
-ask :: Term -> ProgramMap -> Valuation -> [Valuation]
-ask p@(Pred name _) pm val = 
-    let mayUnifyClauses = concat $ Map.lookup name pm
-        valuationAndGoals' = valuationAndGoals (Rule p []) val
-        explore' (val',gs) = explore gs pm val'
-    in concat $ explore' <$> mapMaybe valuationAndGoals' mayUnifyClauses
--- ask _ = 
+data PrologContext = PC Substitution Int deriving (Eq,Show)
 
-valuationAndGoals :: Clause -> Valuation -> Clause -> Maybe (Valuation,Goals)
-valuationAndGoals c1 val c2 =
-    ((\sub -> substitute sub <$> goals c2) <$>)
-    <$> unifyClause c1 c2 val
+-- getFreshVariable :: State PrologContext Term
+-- getFreshVariable = state $ \(PC sub fresh) -> (Var $ "FVAR" ++ show fresh, PC sub (fresh+1))
+getFreshVariable :: PrologContext -> (Term,PrologContext)
+getFreshVariable (PC sub fresh) = (Var $ "FVAR" ++ show fresh, PC sub (fresh+1))
 
-substitute :: Substitution -> Term -> Term
-substitute sub v@(Var _) = fromMaybe v (Map.lookup v sub)
-substitute sub (Pred name args) = Pred name (substitute sub <$> args)
+-- setSub :: Substitution -> State PrologContext ()
+-- setSub sub = state $ \(PC _ fresh) -> ((), PC sub fresh)
+setSub :: PrologContext -> Substitution -> PrologContext
+setSub (PC _ fresh) sub = PC sub fresh
 
--- clauseHead :: Clause -> Term
--- clauseHead (Rule p@(Pred _ _) _) = p
+getSub :: PrologContext -> Substitution
+getSub (PC sub _) = sub
 
-goals :: Clause -> Goals
-goals (Rule (Pred _ _) g) = g
+inSub :: Term -> Substitution -> Bool
+inSub t sub = Map.member t sub
 
--- | Produces the list of the valuations that satisfies all the goals (g:gs)
-explore :: Goals -> ProgramMap -> Valuation -> [Valuation]
-explore [] _ val = [val]
--- ask g pm val :: [Valuation]; explore gs pm :: Valuation -> [Valuation]
--- la mónada List mete no determinismo y genera todas las posibilidades
--- o sea, hace el backtracking gratis
-explore (g:gs) pm val = ask g pm val >>= explore gs pm
+inSubPC :: Term -> PrologContext -> Bool
+inSubPC t (PC sub _) = inSub t sub
 
--- | Takes a Program and produces a Map of Clause [Clause] where the key
--- just holds the name and no args nor goals, and the Clauses are those actual
--- program clauses that shares Name with key. This Map will be used to reduce
--- the amount of possible unifiers for a given goal.
+addSubPC :: Term -> Term -> PrologContext -> PrologContext
+addSubPC v t (PC sub fresh) = PC (Map.insert v t sub) fresh
+
+--------------------------------------------------------------------------------
+-- "Compiling"                                                                --
+--------------------------------------------------------------------------------
+
 genMap :: Program -> ProgramMap
 genMap program = foldr genKeyValuePair Map.empty (nameClauses program)
     where
@@ -90,44 +86,101 @@ getName :: Clause -> Maybe Name
 getName (Rule (Pred name _) _) = Just name
 getName _ = Nothing
 
-unifyClause :: Clause -> Clause -> Valuation -> Maybe Unifier
-unifyClause (Rule p1 _) (Rule p2 _) val = unify p1 p2 (val, Map.empty)
+--------------------------------------------------------------------------------
+-- Proof search                                                               --
+--------------------------------------------------------------------------------
 
--- | Takes two terms and a valuation. If terms unify, returns the compatible
--- valuation that allows the unification. If not, returns Nothing.
-unify :: Term -> Term -> Unifier -> Maybe Unifier
-unify v1@(Var _) v2@(Var _) (val,sub) = addSub v1 v2 (val,sub)
-unify v@(Var _) t (val,sub) = addVal v t (val,sub)
-unify t v@(Var _) (val,sub) = addVal v t (val,sub)
-unify (Pred name1 args1) (Pred name2 args2) val
-    | name1 == name2 && length args1 == length args2 = 
-        argsUnify args1 args2 val
-    | otherwise = Nothing
--- unify _ _ _ = Nothing
+askAll :: Term -> ProgramMap -> [Substitution]
+askAll t pm =
+    let vs = variables t
+        pcs = ask t pm (PC Map.empty 1)
+        subs = getSub <$> pcs
+        results = Map.filterWithKey (\v _ -> elem v vs) <$> subs
+    in  zipWith (\sub res -> Map.mapWithKey (\k _ -> unfold' sub k) res) subs results
 
--- | Attempts to insert a variable substitution [v1/v2] in the Map. If v2 is
--- present as a key, checks wether its value and v1 are the same and performs
--- no changes. If not, the result is Nothing.
-addSub :: Term -> Term -> Unifier -> Maybe Unifier
-addSub v1@(Var name1) v2@(Var name2) (val,sub) = case Map.lookup v2 sub of
-    Nothing -> Just (val, Map.insert v2 v1 sub)
-    Just v' -> if v' == v1 then Just (val,sub) else Nothing
-
--- | Attempts to insert a variable instantiation v = term in the Map. If v is
--- present as a key, the result is Maybe Unifier from unifying
--- v's value and term.
-addVal :: Term -> Term -> Unifier -> Maybe Unifier
-addVal v@(Var _) term (val,sub) = case Map.lookup v val of
-    Nothing -> Just (Map.insert v term val, sub)
-    Just t -> unify t term (val,sub) -- mmmmm
-
-argsUnify :: [Term] -> [Term] -> Unifier -> Maybe Unifier
-argsUnify [] [] (val,sub) = Just (val,sub)
--- unify a1 a2 val :: Maybe Unifier
--- argsUnify as1 as2 :: Unifier -> Maybe Unifier
--- La mónada Maybe se encarga de continuar ante Just, y de cortar ante Nothing
-argsUnify (a1:as1) (a2:as2) (val,sub) = unify a1 a2 (val,sub) >>= argsUnify as1 as2
+variables :: Term -> [Term]
+variables v@(Var _) = [v]
+variables (Pred name args) = List.nub $ concat $ variables <$> args
 
 isGround :: Term -> Bool
 isGround (Var _) = False
 isGround (Pred name args) = all isGround args
+
+ask :: Term -> ProgramMap -> PrologContext -> [PrologContext]
+ask p@(Pred name _) pm pc = 
+    let mayUnifyClauses = concat $ Map.lookup name pm
+        mayUnifyFreshClauses = map (freshClause pc) mayUnifyClauses
+        unifyingClausesGoals = mapMaybe (\(c,pc') -> unify p pc' c) mayUnifyFreshClauses
+        explore' (goals,pc) = explore goals pm pc
+    in  concat $ explore' <$> unifyingClausesGoals
+
+explore :: Goals -> ProgramMap -> PrologContext -> [PrologContext]
+explore [] _ pc = [pc]
+explore (g:gs) pm pc = ask g pm pc >>= explore gs pm
+
+unify :: Term -> PrologContext -> Clause -> Maybe (Goals,PrologContext)
+unify t1 pc (Rule pred goals) = (,) goals <$> unify' t1 pred pc
+
+freshClause :: PrologContext -> Clause -> (Clause,PrologContext)
+freshClause pc (Rule head goals) =
+    let (head', lsub, pc') = freshTerm head pc Map.empty
+        (goals', lsub', pc'') = freshGoals goals pc' lsub
+    in (Rule head' goals', pc'')
+
+freshGoals :: Goals -> PrologContext -> Substitution -> (Goals,Substitution,PrologContext)
+freshGoals [] pc lsub = ([],lsub,pc)
+freshGoals (g:gs) pc lsub =
+    let (g', lsub', pc') = freshTerm g pc lsub
+        (gs', lsub'', pc'') = freshGoals gs pc' lsub'
+    in  (g':gs', lsub'', pc'')
+
+freshTerm :: Term -> PrologContext -> Substitution -> (Term,Substitution,PrologContext)
+freshTerm v@(Var _) pc lsub
+    | v `inSub` lsub = (fromJust $ Map.lookup v lsub, lsub, pc)
+    | otherwise =
+        let (v',pc') = getFreshVariable pc
+        in  (v', Map.insert v v' lsub, pc')
+freshTerm (Pred name args) pc lsub =
+    let (args', lsub', pc') = freshArgs args pc lsub
+    in  (Pred name args', lsub', pc')
+
+freshArgs = freshGoals
+
+unfold :: PrologContext -> Term -> Term
+unfold pc = unfold' (getSub pc)
+
+unfold' :: Substitution -> Term -> Term
+unfold' sub v@(Var _) =
+    let t = fromMaybe v (Map.lookup v sub)
+    in  if t == v then v
+                  else unfold' sub t
+unfold' sub (Pred name args) = Pred name (unfold' sub <$> args)
+
+-- las variables de t2 son fresh
+unify' :: Term -> Term -> PrologContext -> Maybe PrologContext
+unify' v1@(Var _) v2@(Var _) pc
+    |      v1 `inSubPC` pc  &&      v2 `inSubPC` pc  = unify' (unfold pc v1) (unfold pc v2) pc
+    |      v1 `inSubPC` pc  && not (v2 `inSubPC` pc) = Just $ addSubPC v2 (unfold pc v1) pc
+    | not (v1 `inSubPC` pc) &&      v2 `inSubPC` pc  = Just $ addSubPC v1 (unfold pc v2) pc
+    | not (v1 `inSubPC` pc) && not (v2 `inSubPC` pc) = Just $ addSubPC v1 (unfold pc v2) pc
+
+unify' v@(Var _) t pc = Just $ addSubPC v (unfold pc t) pc
+
+unify' t v@(Var _) pc
+    -- acá quizá debería meterse una fresh var en reemplazo de v
+    | not (v `inSubPC` pc) = Just $ addSubPC v (unfold pc t) pc
+        -- let (v',pc') = getFreshVariable pc
+        --     pc'' = addSubPC v v'
+        -- in  Just $ addSubPC v' (unfold t pc'') pc''
+    | otherwise = unify' (unfold pc t) (unfold pc v) pc
+
+unify' (Pred name1 args1) (Pred name2 args2) val
+    | name1 == name2 && length args1 == length args2 = argsUnify args1 args2 val
+    | otherwise = Nothing
+
+-- unify _ _ _ = Nothing
+
+argsUnify :: [Term] -> [Term] -> PrologContext -> Maybe PrologContext
+argsUnify [] [] pc = Just pc
+argsUnify (a1:as1) (a2:as2) pc =
+    unify' (unfold pc a1) (unfold pc a2) pc >>= argsUnify as1 as2

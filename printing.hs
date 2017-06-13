@@ -11,13 +11,13 @@ showAnswerIf = bold . showBool
         showBool True = text "Sí"
         showBool False = text "No"
 
-showAnswerAll :: [Valuation] -> Doc
+showAnswerAll :: [Substitution] -> Doc
 showAnswerAll = indent 4 . vcat . map showValuation
 
-showOneAnswer :: Valuation -> Doc
+showOneAnswer :: Substitution -> Doc
 showOneAnswer = indent 4 . showValuation
 
-showValuation :: Valuation -> Doc
+showValuation :: Substitution -> Doc
 showValuation = brackets' . align . fillSep . punctuate comma . valuationDocs
     where
         valuationDocs = Map.foldWithKey (\v p l -> showInstantiation v p : l) []
