@@ -40,3 +40,25 @@ showPred (Pred name args)
 
 showArgs :: Args -> Doc
 showArgs = hcat . punctuate comma . map showTerm
+
+-- HTML show
+showTermHtml v@(Var _)    = showVar  v
+showTermHtml p@(Pred _ _) = showPredHtml p
+
+showAnswerAllHtml = map showSubstitutionHtml
+
+showSubstitutionHtml = brackets' . align . fillSep . punctuate comma . valuationDocs
+    where
+        valuationDocs = Map.foldWithKey (\v p l -> showInstantiationHtml v p : l) []
+        brackets' = enclose (text "[ ") (text " ]")
+
+showInstantiationHtml var pred = showTermHtml var <> text " = " <> showTermHtml pred
+
+showAnswerIfHtml True  = [text "Sí"]
+showAnswerIfHtml False = [text "No"]
+
+showPredHtml (Pred name args)
+    | null args = text name
+    | otherwise = text name <> parens (showArgsHtml args)
+
+showArgsHtml = hcat . punctuate comma . map showTermHtml
