@@ -6,81 +6,35 @@ import Parser
 import Text.PrettyPrint.ANSI.Leijen hiding ((<$>))
 import Printing
 import System.IO
+import Web.Scotty
 
-main :: IO ()
-main = do
-    putDoc (line <> help <> line)
-    main'
-    
-main' :: IO ()
-main' = do
-    cmd <- getLine
-    case cmd of
-        ('l':cmd') -> loadProgram $ drop 2 cmd
-        _   -> putDoc (line <> help <> line) >> main'
+main = scotty 3000 $ do
+    get "/" $ do
+        body1 <- readFile "body1.html"
+        html $ concat [body1, textarea "Prolog program goes here", goal "Goal goes here"]
+    get "/:program/:goal" $ do
+        program <- param "program"
+        goal <- param "goal"
+        let cont = continue goal program
+        either (cont . error) (cont . answer) (mainAsk goal program)
 
-loadProgram :: FilePath -> IO ()
-loadProgram fileName = do
-    preProgram <- readFile fileName
-    let programMap = genMap <$> parseProgram preProgram
-    either print (programLoaded fileName) programMap
+continue goal program response = do
+    body1 <- readFile "body1.html"
+    html $ concat [body1, textarea (show program), goal (show goal)]
 
-programLoaded :: FilePath -> ProgramMap -> IO ()
-programLoaded fileName pm = do
-    putDoc (line <> queryHelp <> line)
-    programReady fileName pm
+answer a =
+    let answerHtml = readFile "answer.html"
+    in  answerHtml ++ a
 
-programReady :: FilePath -> ProgramMap -> IO ()
-programReady fileName pm = do
-    putDoc $ line <> bold (text "Programa cargado: " <> brackets (yellow (text fileName))) <> line
-    cmd <- getLine
-    case cmd of
-        ('?':cmd') -> answer fileName pm $ drop 2 cmd
-        ('u':cmd') -> putDoc (line <> (bold . text) "Programa descargado" <> line) >> main'
-        _          -> programReady fileName pm
+error e = 
+    let errorHtml = readFile "error.html"
+    in  errorHtml ++ a
+        
+mainAsk goal program = do
+    goal' <- parseGoal goal
+    if isGround goal' then parseAndAskIf goal program
+                      else parseAndAskAll goal program
 
-answer :: FilePath -> ProgramMap -> String -> IO ()
-answer fileName pm unparsedGoal =
-    let Right goal = parseGoal unparsedGoal
-    in if isGround goal
-        then do
-            putDoc $ red (showAnswerIf (askIf goal pm)) <> line
-            programReady fileName pm
-        else forward fileName pm $ askAll goal pm
+textarea str = concat ["<textarea form=\"askForm\" cols=\"80\" rows=\"15\">", str, "</textarea>"]
 
-forward :: FilePath -> ProgramMap -> [Substitution] -> IO ()
-forward fileName pm [] = programReady fileName pm
-forward fileName pm (v:vs) = do
-    putDoc $ showOneAnswer v
-    hFlush stdout
-    forward' fileName pm vs
-  where
-    forward' fileName pm vs = do
-        cmd <- getLine
-        case cmd of
-            (';':cmd') -> forward fileName pm vs
-            ('.':cmd') -> programReady fileName pm
-            _          -> putDoc (answerHelp <> line) >> forward' fileName pm vs
-
-
-help :: Doc
-help = bold ((underline . string) "Uso:" <> line <> string
-                "• " <> (yellow . text) "l file" <> string ": cargar archivo Prolog.\n\
-                \• " <> (yellow . text) "u" <> string ": descarga el programa actual.\n\
-                \• " <> (yellow . text) "h" <> string ": ayuda.")
-
-answerHelp :: Doc
-answerHelp = yellow (string "\t• `;`: imprimir siguiente\n\
-                            \\t• `q`: cancelar")
-
-queryHelp :: Doc
-queryHelp = bold $ (underline . string) "Consultas:" <> line <> string "• " <> (yellow . text) "? query" <>
-            string ": efectuar consulta al programa cargado.\nFormato de una query/term:\n\
-            \\t<query> ::= <term>.\n\
-            \\t<term>  ::= <string> | <string>(<args>)\n\
-            \\t<args>  ::= <term>   | <term>,<args>\n\
-            \En caso de ser una consulta sin variables, la respuesta será True / False.\n\
-            \En caso de ser una consulta con variables, la respuesta será la lista de\n\
-            \valuaciones que satisfacen la consulta. En caso de haber más de una, se\n\
-            \imprimirá la primera y se esperará por la entrada del usuario:\n"
-            <> answerHelp
+goal str = concat ["<form action=\"ask\" id=\"askForm\">Goal: <input type=\"text\" value", str, "></form>"]
