@@ -14,7 +14,7 @@ import Prolog
 import Parser
 import Printing
 
-main = scotty 3000 $ do
+main = scotty 8080 $ do
     get "/" $
         html . pack $ concat [bodyHtml, textareaHtml "Prolog program goes here", goalHtml "Goal goes here", closingBody]
     post "/ask" $ do
