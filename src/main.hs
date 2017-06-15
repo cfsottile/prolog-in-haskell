@@ -72,4 +72,4 @@ answerHtml = "<p>Answer:</p>"
 
 errorHtml = "<p>Error:</p>"
 
-closingBody = "<script>function lists() { document.getElementById('prog').value = 'append(nil,YS,YS).\\nappend(cons(X,XS),YS,ZS) :- append(XS,YS,WS), equal(cons(X,WS),ZS).\\nequal(nil,nil).\\nequal(cons(X,XS),cons(X,YS)) :- equal(XS,YS).'; document.getElementById('g').value = 'append(cons(a,nil),cons(b,nil),ZS).' }</script> </body> </html>"
+closingBody = "<script>function lists() { document.getElementById('prog').value = 'append(nil,YS,YS).\\nappend(cons(X,XS),YS,ZS) :- append(XS,YS,WS), equal(cons(X,WS),ZS).\\nequal(nil,nil).\\nequal(cons(X,XS),cons(X,YS)) :- equal(XS,YS).'; document.getElementById('g').value = 'append(cons(a,nil),cons(b,nil),ZS).' } function ancestors() { document.getElementById('prog').value = 'parent(father,child).\\nparent(mother,child).\\nparent(grandfather,mother).\\nparent(grandmother,mother).\\nparent(greatgrandfather,grandfather).\\nancestor(X,Y) :- parent(X,Y).\\nancestor(X,Y) :- parent(Z,Y), ancestor(X,Z).'; document.getElementById('g').value = 'ancestor(X,Y).' } </script> </body> </html>"
