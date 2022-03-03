@@ -46,39 +46,39 @@ import Parser
 -- gp14 = Pred "mother"   [Var "A", Var "B"]
 
 -- parsedProgram2 = 
---     [ Rule (Pred "negro"  [cnst "cristian"])  []
---     , Rule (Pred "negro"  [cnst "totoy"])     []
---     , Rule (Pred "negro"  [cnst "maxi"])      []
---     , Rule (Pred "negro"  [cnst "ruben"])     []
---     , Rule (Pred "negros" [Var "X", Var "Y"]) [ Pred "negro" [Var "X"]
---                                               , Pred "negro" [Var "Y"]
+--     [ Rule (Pred "human"  [cnst "cristian"])  []
+--     , Rule (Pred "human"  [cnst "totoy"])     []
+--     , Rule (Pred "human"  [cnst "maxi"])      []
+--     , Rule (Pred "human"  [cnst "ruben"])     []
+--     , Rule (Pred "humans" [Var "X", Var "Y"]) [ Pred "human" [Var "X"]
+--                                               , Pred "human" [Var "Y"]
 --                                               ]
 --     ]
 
--- p2 = [ Rule (Pred "negro" [cnst "cristian"]) [], Rule (Pred "negro" [cnst "totoy"])    [], Rule (Pred "negro" [cnst "maxi"])     [], Rule (Pred "negro" [cnst "ruben"])    [], Rule (Pred "negros" [Var "X", Var "Y"]) [ Pred "negro" [Var "X"] , Pred "negro" [Var "Y"]]]
+-- p2 = [ Rule (Pred "human" [cnst "cristian"]) [], Rule (Pred "human" [cnst "totoy"])    [], Rule (Pred "human" [cnst "maxi"])     [], Rule (Pred "human" [cnst "ruben"])    [], Rule (Pred "humans" [Var "X", Var "Y"]) [ Pred "human" [Var "X"] , Pred "human" [Var "Y"]]]
 
--- gp21 = Pred "negro"  [cnst "cristian"]
--- gp22 = Pred "negro"  [cnst "totoy"]
--- gp23 = Pred "negro"  [cnst "maxi"]
--- gp24 = Pred "negro"  [cnst "ruben"]
--- gp25 = Pred "negros" [Var "A", Var "B"]
+-- gp21 = Pred "human"  [cnst "cristian"]
+-- gp22 = Pred "human"  [cnst "totoy"]
+-- gp23 = Pred "human"  [cnst "maxi"]
+-- gp24 = Pred "human"  [cnst "ruben"]
+-- gp25 = Pred "humans" [Var "A", Var "B"]
 
 unparsedProgram2 = "% this is a comment!\n\
-                    \negro(cristian).\n\
-                    \negro(totoy).\n\
-                    \negro(maxi).\n\
-                    \negro(ruben).\n\
-                    \negros(X,Y) :- negro(X), negro(Y).\n\
-                    \negros4(X,Y,W,Z) :- negros(X,Y), negros(W,Z).\n\
-                    \negros8(A,B,C,D,E,F,G,H) :- negros4(A,B,C,D), negros4(E,F,G,H).\n\
-                    \negros16(A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P) :- negros8(A,B,C,D,E,F,G,H), negros8(I,J,K,L,M,N,O,P)."
+                    \human(cristian).\n\
+                    \human(totoy).\n\
+                    \human(maxi).\n\
+                    \human(ruben).\n\
+                    \humans(X,Y) :- human(X), human(Y).\n\
+                    \humans4(X,Y,W,Z) :- humans(X,Y), humans(W,Z).\n\
+                    \humans8(A,B,C,D,E,F,G,H) :- humans4(A,B,C,D), humans4(E,F,G,H).\n\
+                    \humans16(A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P) :- humans8(A,B,C,D,E,F,G,H), humans8(I,J,K,L,M,N,O,P)."
 
-gu21 = "negro(cristian)."
-gu22 = "negro(totoy)."
-gu23 = "negro(maxi)."
-gu24 = "negro(ruben)."
-gu25 = "negros(X,Y)."
-gu26 = "negros16(A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P)."
+gu21 = "human(cristian)."
+gu22 = "human(totoy)."
+gu23 = "human(maxi)."
+gu24 = "human(ruben)."
+gu25 = "humans(X,Y)."
+gu26 = "humans16(A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P)."
 
 lists = "\
         \append(nil,Ys1,Ys1).\
